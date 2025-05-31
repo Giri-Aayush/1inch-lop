@@ -2,10 +2,6 @@
 
 > Revolutionary DeFi trading strategies featuring options on execution rights, volatility-aware position sizing, and MEV-resistant TWAP execution.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Solidity](https://img.shields.io/badge/Solidity-^0.8.19-blue)](https://docs.soliditylang.org/)
-[![Foundry](https://img.shields.io/badge/Built%20with-Foundry-orange)](https://getfoundry.sh/)
-
 ## What We Built
 
 ### 1. Options on Execution Rights (Industry First)
@@ -192,7 +188,7 @@ All contracts implement the 1inch `IAmountGetter` interface for seamless integra
 - **95+ unit tests** covering all strategy logic
 - **54 mainnet fork tests** with real market data (WETH, USDC, USDT)
 - **Live price feeds** from Ethereum mainnet
-- **Multi-network validation** on 5+ EVM chains
+- **Multi-network validation** can be acheived for all EVM chains where limit protocol is available
 
 ## Usage Examples
 
