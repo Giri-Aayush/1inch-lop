@@ -5,7 +5,7 @@ libs = ["lib"]
 solc_version = "0.8.19"
 optimizer = true
 optimizer_runs = 200
-via_ir = false
+via_ir = true
 
 [rpc_endpoints]
 mainnet = "https://rpc.ankr.com/eth"
@@ -31,3 +31,10 @@ wrap_comments = true
 [doc]
 out = "docs"
 title = "1inch Advanced Strategy Engine"
+
+# Vector Plus CLI configuration - FIXED: Use profile.cli instead of cli
+[profile.cli]
+name = "vector-plus"
+version = "0.1.0"
+target_dir = "cli"
+binary_path = "cli/target/release/vector-plus"
