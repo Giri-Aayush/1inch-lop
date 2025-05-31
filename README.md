@@ -247,7 +247,7 @@ All EVM networks where limit protocol is available, just need some changes in de
 
 - **[CLI Guide](./docs/CLI.md)** - Complete command reference
 - **[Testing Guide](./docs/TESTING.md)** - Running tests and validation
-- **[API Reference](./src/)** - Smart contract documentation
+- **[Smart Contracts](./src/)** - Smart contract documentation
 
 ## License
 
