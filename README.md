@@ -8,7 +8,7 @@
 
 ## What We Built
 
-### 1. Options on Execution Rights 
+### 1. Options on Execution Rights (Industry First)
 Trade options on the **right to execute** limit orders, not the underlying assets.
 
 ![Options Flow](./docs/assets/1.png)
@@ -21,18 +21,20 @@ Trade options on the **right to execute** limit orders, not the underlying asset
 5. **Profit/Loss**: Bob profits from the price difference minus premium, or loses the premium if not exercised
 
 **Key Innovation**: Unlike traditional options on assets, these are options on the **execution right** of existing limit orders.
+
 ### 2. Volatility-Aware Position Sizing
 Dynamic execution sizing based on real-time market volatility.
 
-![alt text](./docs/assets/2.png)
+![Volatility Flow](./docs/assets/2.png)
+
 **How it works:**
 1. **Volatility Input**: Real-time market volatility is fed into the system (measured in basis points)
 2. **Risk Assessment**: Algorithm calculates risk score (0-1000) based on current vs baseline volatility
 3. **Size Adjustment**:
-  - **Low volatility (<2%)**: Increase execution size by up to 50% (safer to execute larger amounts)
-  - **Normal volatility (2-5%)**: Standard execution size
-  - **High volatility (5-12%)**: Reduce execution size by up to 50% (risk management)
-  - **Extreme volatility (>12%)**: Emergency pause - no execution allowed
+   - **Low volatility (<2%)**: Increase execution size by up to 50% (safer to execute larger amounts)
+   - **Normal volatility (2-5%)**: Standard execution size
+   - **High volatility (5-12%)**: Reduce execution size by up to 50% (risk management)
+   - **Extreme volatility (>12%)**: Emergency pause - no execution allowed
 4. **Bounds Enforcement**: Final amount respects min/max execution limits
 5. **Conservative Mode**: Optional additional 10% reduction for extra safety
 
@@ -56,9 +58,10 @@ Time-weighted execution with anti-MEV randomization.
 - **Progress tracking** with emergency controls for extreme market conditions
 
 **Example**: 12 ETH order over 2 hours → 12 intervals with 0.85-1.15 ETH per interval, executed every 8-12 minutes depending on volatility
+
 ## System Architecture
 
-![alt text](./docs/assets/3.png)
+![archi](./docs/assets/3.png)
 
 ## Quick Start
 
@@ -102,13 +105,85 @@ forge test
 - **Adaptive intervals** adjust based on volatility
 - **Time-weighted distribution** reduces market impact
 
-## Smart Contracts
+## Smart Contract Architecture
 
-| Contract | Purpose | Gas Cost |
-|----------|---------|----------|
-| `OptionsCalculator` | Options on execution rights | ~120k gas |
-| `EnhancedVolatilityCalculator` | Volatility-aware sizing | ~50k gas |
-| `EnhancedTWAPVolatilityExecutor` | TWAP + volatility execution | ~75k gas |
+### Core Strategy Contracts
+
+| Contract | Purpose | Gas Cost | Dependencies |
+|----------|---------|----------|--------------|
+| `EnhancedVolatilityCalculator` | Volatility-aware position sizing | ~50k gas | None (standalone) |
+| `EnhancedTWAPVolatilityExecutor` | TWAP + volatility execution | ~75k gas | VolatilityCalculator |
+| `OptionsCalculator` | Options on execution rights | ~120k gas | None (standalone) |
+| `VectorPlusInterface` | Unified interface for all strategies | Variable | All above contracts |
+
+### Contract Dependencies
+
+![deps](./docs/assets/4.png)
+### How Smart Contracts Work Together
+
+**1. Independent Strategy Contracts:**
+- `EnhancedVolatilityCalculator` - Standalone volatility analysis
+- `OptionsCalculator` - Standalone options trading
+- Both implement `IAmountGetter` for direct 1inch integration
+
+**2. Combined Strategy Contract:**
+- `EnhancedTWAPVolatilityExecutor` - Combines TWAP with volatility analysis
+- **Depends on:** `EnhancedVolatilityCalculator` (constructor parameter)
+- Calls volatility calculator for risk assessment and position sizing
+
+**3. Unified Interface Contract:**
+- `VectorPlusInterface` - Single entry point for all functionality
+- **Depends on:** All three strategy contracts (constructor parameters)
+- Provides batch operations, gas estimation, and unified API
+
+### Integration Interface
+
+```solidity
+// Main interface for integrating Vector Plus
+interface IVectorPlusInterface {
+    // Volatility Strategy
+    function calculateVolatilityAmount(uint256 baseAmount, VolatilityData memory volData) 
+        external view returns (uint256 adjustedAmount);
+    
+    // TWAP Strategy  
+    function calculateTWAPAmount(Order memory order, bytes32 orderHash, uint256 requestedAmount, 
+        uint256 remainingAmount, CombinedStrategyData memory combinedData) 
+        external view returns (uint256 executionAmount);
+    
+    // Options Strategy
+    function createCallOption(Order memory order, bytes32 orderHash, uint256 strikePrice, 
+        uint256 expiration, uint256 premium) 
+        external payable returns (bytes32 optionId);
+    
+    function createPutOption(Order memory order, bytes32 orderHash, uint256 strikePrice, 
+        uint256 expiration, uint256 premium) 
+        external payable returns (bytes32 optionId);
+    
+    // Utility Functions
+    function batchCalculateVolatility(uint256[] memory amounts, VolatilityData memory volData) 
+        external view returns (uint256[] memory adjustedAmounts);
+    
+    function estimateGasCost(string memory strategyType) 
+        external pure returns (uint256 gasEstimate);
+}
+```
+
+### Deployment Order
+
+```bash
+# 1. Deploy independent contracts
+forge create EnhancedVolatilityCalculator
+forge create OptionsCalculator --constructor-args $FEE_COLLECTOR
+
+# 2. Deploy dependent contract
+forge create EnhancedTWAPVolatilityExecutor --constructor-args $VOLATILITY_CALCULATOR_ADDRESS
+
+# 3. Deploy unified interface
+forge create VectorPlusInterface --constructor-args $VOLATILITY_CALC $TWAP_EXECUTOR $OPTIONS_CALC
+
+# 4. Use deployment script for automated deployment
+./deploy.sh mainnet --verify
+```
 
 All contracts implement the 1inch `IAmountGetter` interface for seamless integration.
 

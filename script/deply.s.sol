@@ -59,12 +59,11 @@ contract Deploy is Script {
         // Get configuration from environment variables
         config.deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         config.feeCollector = vm.envOr("FEE_COLLECTOR", msg.sender);
-        config.verify = vm.envBool("VERIFY_CONTRACTS");
-        config.network = vm.envString("NETWORK");
+        config.verify = vm.envOr("VERIFY_CONTRACTS", false);
+        config.network = vm.envOr("NETWORK", string("localhost"));
         
         // Network-specific fee collector addresses
         if (keccak256(bytes(config.network)) == keccak256(bytes("mainnet"))) {
-            // Use 1inch fee collector or deployer
             config.feeCollector = vm.envOr("MAINNET_FEE_COLLECTOR", config.feeCollector);
         } else if (keccak256(bytes(config.network)) == keccak256(bytes("polygon"))) {
             config.feeCollector = vm.envOr("POLYGON_FEE_COLLECTOR", config.feeCollector);
@@ -80,24 +79,24 @@ contract Deploy is Script {
         deployed.network = config.network;
         deployed.blockNumber = block.number;
         
-        console.log("\n Deploying EnhancedVolatilityCalculator...");
+        console.log("\n🔧 Deploying EnhancedVolatilityCalculator...");
         EnhancedVolatilityCalculator volatilityCalc = new EnhancedVolatilityCalculator();
         deployed.volatilityCalculator = address(volatilityCalc);
-        console.log("EnhancedVolatilityCalculator deployed:", deployed.volatilityCalculator);
+        console.log("✅ EnhancedVolatilityCalculator deployed:", deployed.volatilityCalculator);
         
-        console.log("\n Deploying EnhancedTWAPVolatilityExecutor...");
+        console.log("\n🔧 Deploying EnhancedTWAPVolatilityExecutor...");
         EnhancedTWAPVolatilityExecutor twapExecutor = new EnhancedTWAPVolatilityExecutor(
             deployed.volatilityCalculator
         );
         deployed.twapExecutor = address(twapExecutor);
-        console.log(" EnhancedTWAPVolatilityExecutor deployed:", deployed.twapExecutor);
+        console.log("✅ EnhancedTWAPVolatilityExecutor deployed:", deployed.twapExecutor);
         
-        console.log("\n Deploying OptionsCalculator...");
+        console.log("\n🔧 Deploying OptionsCalculator...");
         OptionsCalculator optionsCalc = new OptionsCalculator(config.feeCollector);
         deployed.optionsCalculator = address(optionsCalc);
-        console.log(" OptionsCalculator deployed:", deployed.optionsCalculator);
+        console.log("✅ OptionsCalculator deployed:", deployed.optionsCalculator);
         
-        console.log("\n All contracts deployed successfully!");
+        console.log("\n🎉 All contracts deployed successfully!");
     }
     
     function _saveDeployment(DeployedContracts memory deployed) internal {
@@ -121,7 +120,7 @@ contract Deploy is Script {
         ));
         
         vm.writeFile(filename, deploymentJson);
-        console.log("\n Deployment saved to:", filename);
+        console.log("\n💾 Deployment saved to:", filename);
     }
     
     function _printDeploymentSummary(DeployedContracts memory deployed) internal pure {
@@ -131,21 +130,21 @@ contract Deploy is Script {
         console.log("Network:", deployed.network);
         console.log("Block Number:", deployed.blockNumber);
         console.log("");
-        console.log(" EnhancedVolatilityCalculator:");
+        console.log("📊 EnhancedVolatilityCalculator:");
         console.log("   ", deployed.volatilityCalculator);
         console.log("");
-        console.log(" EnhancedTWAPVolatilityExecutor:");
+        console.log("⏱️  EnhancedTWAPVolatilityExecutor:");
         console.log("   ", deployed.twapExecutor);
         console.log("");
-        console.log(" OptionsCalculator:");
+        console.log("📞 OptionsCalculator:");
         console.log("   ", deployed.optionsCalculator);
         console.log("===========================================");
-        console.log(" Ready for Vector Plus CLI integration!");
+        console.log("🚀 Ready for Vector Plus CLI integration!");
         console.log("===========================================");
     }
     
-    function _verifyContracts(DeployedContracts memory deployed) internal {
-        console.log("\n Contract verification will be handled by --verify flag");
+    function _verifyContracts(DeployedContracts memory deployed) internal pure {
+        console.log("\n🔍 Contract verification will be handled by --verify flag");
         console.log("Use: forge script script/Deploy.s.sol --verify --etherscan-api-key $ETHERSCAN_API_KEY");
     }
 }
