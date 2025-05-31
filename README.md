@@ -233,12 +233,7 @@ vector-plus options premium \
 ```
 
 ## Network Support
-
-- **Ethereum Mainnet** - Primary deployment
-- **Polygon** - L2 for lower fees
-- **Arbitrum** - Optimistic rollup
-- **Base** - Coinbase L2
-- **Optimism** - Ethereum L2
+All EVM networks where limit protocol is available, just need some changes in deployment scripts.
 
 ## Performance Metrics
 
