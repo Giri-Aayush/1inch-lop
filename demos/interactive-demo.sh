@@ -12,21 +12,21 @@ NC='\033[0m'
 
 show_menu() {
     echo -e "${PURPLE}╔════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${PURPLE}║                VECTOR PLUS DEMOS                      ║${NC}"
-    echo -e "${PURPLE}║            Choose Your Demo Experience                ║${NC}"
+    echo -e "${PURPLE}║              VECTOR PLUS DEMONSTRATION SUITE           ║${NC}"
+    echo -e "${PURPLE}║           Advanced Trading Strategy Showcase           ║${NC}"
     echo -e "${PURPLE}╚════════════════════════════════════════════════════════╝${NC}"
     echo ""
-    echo -e "${CYAN}Available Demos:${NC}"
+    echo -e "${CYAN}Technical Demonstrations:${NC}"
     echo ""
-    echo -e "${YELLOW}1)${NC} 🚀 Quick Demo (2 minutes)"
-    echo -e "${YELLOW}2)${NC} 🔍 Full Comprehensive Demo (10 minutes)"
-    echo -e "${YELLOW}3)${NC} 🔗 Mainnet Fork Testing (5 minutes)"
-    echo -e "${YELLOW}4)${NC} 🌊 Volatility Strategy Deep Dive"
-    echo -e "${YELLOW}5)${NC} 🕒 TWAP Execution Showcase"
-    echo -e "${YELLOW}6)${NC} 📞 Options Innovation Demo"
+    echo -e "${YELLOW}1)${NC} 📈 Executive Overview (professional summary)"
+    echo -e "${YELLOW}2)${NC} 🏢 Complete Technical Showcase (comprehensive)"
+    echo -e "${YELLOW}3)${NC} 🔬 Mainnet Fork Validation (live testing)"
+    echo -e "${YELLOW}4)${NC} 🌊 Volatility Engine Analysis"
+    echo -e "${YELLOW}5)${NC} ⏱️  TWAP Execution Deep Dive"
+    echo -e "${YELLOW}6)${NC} 💎 Options Implementation Showcase"
     echo -e "${YELLOW}7)${NC} 🎯 Interactive CLI Experience"
-    echo -e "${YELLOW}8)${NC} ⛽ Gas Efficiency Analysis"
-    echo -e "${YELLOW}9)${NC} 🏆 Bounty Highlights Summary"
+    echo -e "${YELLOW}8)${NC} ⛽ Gas Efficiency Benchmarks"
+    echo -e "${YELLOW}9)${NC} 🏆 Technical Achievement Summary"
     echo -e "${YELLOW}0)${NC} ❌ Exit"
     echo ""
 }
@@ -204,15 +204,15 @@ main() {
         
         case $choice in
             1)
-                echo -e "${YELLOW}🚀 Running Quick Demo...${NC}"
-                ./quick-demo.sh
+                echo -e "${YELLOW}📈 Running Executive Overview...${NC}"
+                ./executive-summary.sh
                 ;;
             2)
-                echo -e "${YELLOW}🔍 Running Full Demo...${NC}"
-                ./vector-plus-demo.sh
+                echo -e "${YELLOW}🏢 Running Technical Showcase...${NC}"
+                ./vector-plus-showcase.sh
                 ;;
             3)
-                echo -e "${YELLOW}🔗 Running Mainnet Fork Tests...${NC}"
+                echo -e "${YELLOW}🔬 Running Mainnet Fork Validation...${NC}"
                 ./mainnet-fork-demo.sh
                 ;;
             4)
@@ -234,7 +234,7 @@ main() {
                 run_bounty_highlights
                 ;;
             0)
-                echo -e "${GREEN}👋 Thanks for exploring Vector Plus!${NC}"
+                echo -e "${GREEN}👋 Thank you for exploring Vector Plus!${NC}"
                 exit 0
                 ;;
             *)
