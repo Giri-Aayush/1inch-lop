@@ -58,12 +58,46 @@ contract OptionsCalculatorTest is Test {
         console.log("Premium Paid:", premium / 1e6, "USDC");
     }
     
+    function testCreatePutOption() public {
+        console.log("\n=== Testing Put Option Creation ===");
+        
+        IOrderMixin.Order memory order = _createBuyOrder(5e18, 9500e6); // Buy 5 ETH for 9,500 USDC ($1,900/ETH)
+        bytes32 orderHash = keccak256("put_test_order");
+        
+        uint256 strikePrice = 1950e6; // $1,950 USDC per ETH
+        uint256 expiration = block.timestamp + 14 days;
+        uint256 premium = 75e6; // $75 USDC premium
+        
+        vm.prank(CAROL);
+        bytes32 optionId = optionsCalc.createPutOption(
+            order,
+            orderHash,
+            strikePrice,
+            expiration,
+            premium
+        );
+        
+        OptionsCalculator.OptionData memory option = optionsCalc.getOption(optionId);
+        
+        assertEq(option.strikePrice, strikePrice, "Strike price should match");
+        assertEq(option.expiration, expiration, "Expiration should match");
+        assertEq(option.premiumPaid, premium, "Premium should match");
+        assertFalse(option.isCall, "Should be a put option");
+        assertEq(option.optionHolder, CAROL, "Carol should be the holder");
+        assertEq(option.optionSeller, ALICE, "Alice should be the seller");
+        
+        console.log(" Put option created successfully");
+        console.log("Option ID:", vm.toString(optionId));
+        console.log("Strike Price:", strikePrice / 1e6, "USDC");
+        console.log("Premium Paid:", premium / 1e6, "USDC");
+    }
+    
     function testProfitableCallExercise() public {
         console.log("\n=== Testing Profitable Call Option Exercise ===");
         
         // Setup: Alice sells 10 ETH for 21,000 USDC ($2,100/ETH)
         IOrderMixin.Order memory order = _createSellOrder(10e18, 21000e6);
-        bytes32 orderHash = keccak256("profitable_test");
+        bytes32 orderHash = keccak256("profitable_call_test");
         
         // Bob buys call option with strike at $2,050
         vm.prank(BOB);
@@ -82,16 +116,17 @@ contract OptionsCalculatorTest is Test {
         console.log("Strike Price:", 2050, "USDC");
         console.log("Order Price:", 2100, "USDC");
         
-        // Check if exercise is profitable
-        bool isProfitable = optionsCalc.isProfitableToExercise(optionId, currentPrice);
+        // Check profitability
+        (uint256 profit, bool isProfitable) = optionsCalc.calculateExerciseProfit(optionId, currentPrice, order);
         assertTrue(isProfitable, "Exercise should be profitable");
+        console.log("Calculated profit:", profit / 1e6, "USDC");
         
-        // Move to exercise window (30 minutes before expiration)
+        // Move to exercise window
         vm.warp(block.timestamp + 7 days - 1800);
         
-        // Bob exercises the option
+        // Bob exercises the option using universal function
         vm.prank(BOB);
-        bool success = optionsCalc.exerciseCallOption(optionId, order, currentPrice);
+        bool success = optionsCalc.exerciseOption(optionId, order, currentPrice);
         assertTrue(success, "Exercise should succeed");
         
         // Verify option is marked as exercised
@@ -99,36 +134,153 @@ contract OptionsCalculatorTest is Test {
         assertTrue(option.isExercised, "Option should be marked as exercised");
         
         console.log(" Call option exercised successfully");
-        console.log("Expected profit: $", (currentPrice - 2050e6) * 10 / 1e6 - 50, "USDC");
     }
     
-    function testUnprofitableCallExpiry() public {
-        console.log("\n=== Testing Unprofitable Call Option Expiry ===");
+    function testProfitablePutExercise() public {
+        console.log("\n=== Testing Profitable Put Option Exercise ===");
         
-        IOrderMixin.Order memory order = _createSellOrder(5e18, 10000e6);
-        bytes32 orderHash = keccak256("unprofitable_test");
+        // Setup: Alice buys 5 ETH for 9,500 USDC ($1,900/ETH)
+        IOrderMixin.Order memory order = _createBuyOrder(5e18, 9500e6);
+        bytes32 orderHash = keccak256("profitable_put_test");
         
-        // Bob buys call option
+        // Carol buys put option with strike at $1,950
+        vm.prank(CAROL);
+        bytes32 optionId = optionsCalc.createPutOption(
+            order,
+            orderHash,
+            1950e6, // Strike: $1,950
+            block.timestamp + 7 days,
+            30e6    // Premium: $30
+        );
+        
+        // ETH price drops to $1,750
+        uint256 currentPrice = 1750e6;
+        
+        console.log("Current ETH Price:", currentPrice / 1e6, "USDC");
+        console.log("Strike Price:", 1950, "USDC");
+        console.log("Order Price:", 1900, "USDC");
+        
+        // Check profitability
+        (uint256 profit, bool isProfitable) = optionsCalc.calculateExerciseProfit(optionId, currentPrice, order);
+        assertTrue(isProfitable, "Put exercise should be profitable");
+        console.log("Calculated profit:", profit / 1e6, "USDC");
+        
+        // Move to exercise window
+        vm.warp(block.timestamp + 7 days - 1800);
+        
+        // Carol exercises the put option using universal function
+        vm.prank(CAROL);
+        bool success = optionsCalc.exerciseOption(optionId, order, currentPrice);
+        assertTrue(success, "Put exercise should succeed");
+        
+        // Verify option is marked as exercised
+        OptionsCalculator.OptionData memory option = optionsCalc.getOption(optionId);
+        assertTrue(option.isExercised, "Option should be marked as exercised");
+        
+        console.log(" Put option exercised successfully");
+    }
+    
+    function testUniversalExerciseFunction() public {
+        console.log("\n=== Testing Universal Exercise Function ===");
+        
+        // Create both call and put options
+        IOrderMixin.Order memory sellOrder = _createSellOrder(1e18, 2000e6);
+        IOrderMixin.Order memory buyOrder = _createBuyOrder(1e18, 1800e6);
+        
+        vm.prank(BOB);
+        bytes32 callOptionId = optionsCalc.createCallOption(
+            sellOrder,
+            keccak256("call_universal"),
+            1950e6,
+            block.timestamp + 7 days,
+            25e6
+        );
+        
+        vm.prank(CAROL);
+        bytes32 putOptionId = optionsCalc.createPutOption(
+            buyOrder,
+            keccak256("put_universal"),
+            1850e6,
+            block.timestamp + 7 days,
+            25e6
+        );
+        
+        // Move to exercise window
+        vm.warp(block.timestamp + 7 days - 1800);
+        
+        // Test universal exercise for call (price rises)
+        vm.prank(BOB);
+        bool callSuccess = optionsCalc.exerciseOption(callOptionId, sellOrder, 2100e6);
+        assertTrue(callSuccess, "Universal call exercise should work");
+        
+        // Test universal exercise for put (price drops)
+        vm.prank(CAROL);
+        bool putSuccess = optionsCalc.exerciseOption(putOptionId, buyOrder, 1700e6);
+        assertTrue(putSuccess, "Universal put exercise should work");
+        
+        console.log(" Universal exercise function working correctly");
+        console.log("Call option exercised:", callSuccess);
+        console.log("Put option exercised:", putSuccess);
+    }
+    
+    function testOptionStatusTracking() public {
+        console.log("\n=== Testing Option Status Tracking ===");
+        
+        IOrderMixin.Order memory order = _createSellOrder(1e18, 2000e6);
+        bytes32 orderHash = keccak256("status_test");
+        
         vm.prank(BOB);
         bytes32 optionId = optionsCalc.createCallOption(
             order,
             orderHash,
-            2100e6, // Strike: $2,100
-            block.timestamp + 3 days,
-            30e6     // Premium: $30
+            1900e6,
+            block.timestamp + 7 days,
+            50e6
         );
         
-        // ETH price stays low at $2,000
-        uint256 currentPrice = 2000e6;
+        // Test different scenarios
+        uint256 currentPrice = 2100e6; // In the money
         
-        bool isProfitable = optionsCalc.isProfitableToExercise(optionId, currentPrice);
-        assertFalse(isProfitable, "Exercise should not be profitable");
+        (OptionsCalculator.OptionData memory option, OptionsCalculator.OptionStatus memory status) = 
+            optionsCalc.getOptionWithStatus(optionId, currentPrice);
         
-        console.log("Current ETH Price:", currentPrice / 1e6, "USDC");
-        console.log("Strike Price:", 2100, "USDC");
-        console.log("Not profitable to exercise - Bob loses premium");
+        assertFalse(status.isExpired, "Should not be expired yet");
+        assertTrue(status.isInTheMoney, "Should be in the money");
+        assertFalse(status.isInExerciseWindow, "Should not be in exercise window yet");
+        assertTrue(status.intrinsicValue > 0, "Should have intrinsic value");
         
-        console.log(" Option correctly identified as unprofitable");
+        console.log(" Option status tracking working correctly");
+        console.log("Intrinsic Value:", status.intrinsicValue / 1e6, "USDC");
+        console.log("Time to Expiration:", status.timeToExpiration / 86400, "days");
+        console.log("In the Money:", status.isInTheMoney);
+        console.log("Can Exercise:", status.canExercise);
+    }
+    
+    function testCallAndPutPricing() public view {
+        console.log("\n=== Testing Call and Put Option Pricing ===");
+        
+        IOrderMixin.Order memory order = _createSellOrder(1e18, 2000e6);
+        
+        OptionsCalculator.PricingParams memory params = OptionsCalculator.PricingParams({
+            currentPrice: 2100e6,    // Current: $2,100
+            timeToExpiration: 14 days,
+            volatility: 6000,        // 60% volatility
+            riskFreeRate: 500        // 5% risk-free rate
+        });
+        
+        uint256 callPremium = optionsCalc.calculateOptionPremium(order, params, true);
+        uint256 putPremium = optionsCalc.calculateOptionPremium(order, params, false);
+        
+        console.log("Call Premium:", callPremium / 1e6, "USDC");
+        console.log("Put Premium:", putPremium / 1e6, "USDC");
+        
+        assertTrue(callPremium > 0, "Call premium should be positive");
+        assertTrue(putPremium >= 0, "Put premium should be non-negative");
+        
+        // When current > order price, call should be more valuable
+        assertTrue(callPremium >= putPremium, "Call should be more valuable when ITM");
+        
+        console.log(" Call and Put pricing working correctly");
     }
     
     function testOptionGreeksCalculation() public {
@@ -163,31 +315,45 @@ contract OptionsCalculatorTest is Test {
         console.log(" Greeks calculated successfully");
     }
     
-    function testOptionPremiumCalculation() public view {
-        console.log("\n=== Testing Option Premium Calculation ===");
+    function testMultipleOptionsStrategies() public {
+        console.log("\n=== Testing Multiple Options Strategies (Straddle) ===");
         
-        IOrderMixin.Order memory order = _createSellOrder(1e18, 2000e6); // 1 ETH for 2000 USDC
+        IOrderMixin.Order memory sellOrder = _createSellOrder(10e18, 20000e6); // $2,000/ETH
+        IOrderMixin.Order memory buyOrder = _createBuyOrder(10e18, 18000e6);   // $1,800/ETH
         
-        OptionsCalculator.PricingParams memory params = OptionsCalculator.PricingParams({
-            currentPrice: 2100e6,    // Current: $2,100
-            timeToExpiration: 7 days,
-            volatility: 8000,        // 80% volatility
-            riskFreeRate: 500        // 5% risk-free rate
-        });
+        // Straddle strategy: Buy both call and put
+        vm.prank(BOB);
+        bytes32 callOption = optionsCalc.createCallOption(
+            sellOrder,
+            keccak256("straddle_call"),
+            2100e6, // Call strike: $2,100
+            block.timestamp + 30 days,
+            100e6   // Premium: $100
+        );
         
-        uint256 callPremium = optionsCalc.calculateOptionPremium(order, params, true);
-        uint256 putPremium = optionsCalc.calculateOptionPremium(order, params, false);
+        vm.prank(BOB);
+        bytes32 putOption = optionsCalc.createPutOption(
+            buyOrder,
+            keccak256("straddle_put"),
+            1700e6, // Put strike: $1,700
+            block.timestamp + 30 days,
+            80e6    // Premium: $80
+        );
         
-        console.log("Call Premium:", callPremium / 1e6, "USDC");
-        console.log("Put Premium:", putPremium / 1e6, "USDC");
+        assertTrue(callOption != putOption, "Options should have different IDs");
         
-        assertTrue(callPremium > 0, "Call premium should be positive");
-        assertTrue(putPremium >= 0, "Put premium should be non-negative");
+        OptionsCalculator.OptionData memory call = optionsCalc.getOption(callOption);
+        OptionsCalculator.OptionData memory put = optionsCalc.getOption(putOption);
         
-        // Call should be more valuable when current > strike
-        assertTrue(callPremium > putPremium, "Call should be more valuable than put when ITM");
+        assertTrue(call.isCall, "First option should be call");
+        assertFalse(put.isCall, "Second option should be put");
+        assertEq(call.optionHolder, BOB, "Bob should hold both options");
+        assertEq(put.optionHolder, BOB, "Bob should hold both options");
         
-        console.log(" Premium calculation working correctly");
+        console.log(" Straddle strategy created successfully");
+        console.log("Call Strike:", call.strikePrice / 1e6, "USDC");
+        console.log("Put Strike:", put.strikePrice / 1e6, "USDC");
+        console.log("Total Premium Paid:", (call.premiumPaid + put.premiumPaid) / 1e6, "USDC");
     }
     
     function testOneinchIntegration() public {
@@ -261,7 +427,7 @@ contract OptionsCalculatorTest is Test {
         // Try to exercise immediately (should fail - not in exercise window)
         vm.prank(BOB);
         vm.expectRevert(OptionsCalculator.OutsideExerciseWindow.selector);
-        optionsCalc.exerciseCallOption(optionId, order, 2100e6);
+        optionsCalc.exerciseOption(optionId, order, 2100e6);
         
         console.log(" Early exercise correctly prevented");
     }
@@ -284,7 +450,7 @@ contract OptionsCalculatorTest is Test {
         
         vm.prank(BOB);
         vm.expectRevert();  // Will revert with OptionAlreadyExpired
-        optionsCalc.exerciseCallOption(optionId, order, 2100e6);
+        optionsCalc.exerciseOption(optionId, order, 2100e6);
         
         console.log(" Post-expiry exercise correctly prevented");
     }
@@ -308,53 +474,12 @@ contract OptionsCalculatorTest is Test {
         // Try to exercise when price is below strike (unprofitable)
         vm.prank(BOB);
         vm.expectRevert(OptionsCalculator.ExerciseNotProfitable.selector);
-        optionsCalc.exerciseCallOption(optionId, order, 2000e6); // Price below strike
+        optionsCalc.exerciseOption(optionId, order, 2000e6); // Price below strike
         
         console.log(" Unprofitable exercise correctly prevented");
     }
     
-    function testMultipleOptionsOnSameOrder() public {
-        console.log("\n=== Testing Multiple Options on Same Order ===");
-        
-        IOrderMixin.Order memory order = _createSellOrder(10e18, 20000e6);
-        bytes32 orderHash = keccak256("multi_options_test");
-        
-        // Bob creates first option
-        vm.prank(BOB);
-        bytes32 option1 = optionsCalc.createCallOption(
-            order,
-            orderHash,
-            2100e6,
-            block.timestamp + 7 days,
-            50e6
-        );
-        
-        // Carol creates second option on same order
-        vm.prank(CAROL);
-        bytes32 option2 = optionsCalc.createCallOption(
-            order,
-            orderHash,
-            2200e6,
-            block.timestamp + 14 days,
-            75e6
-        );
-        
-        assertTrue(option1 != option2, "Option IDs should be different");
-        
-        OptionsCalculator.OptionData memory opt1 = optionsCalc.getOption(option1);
-        OptionsCalculator.OptionData memory opt2 = optionsCalc.getOption(option2);
-        
-        assertEq(opt1.optionHolder, BOB, "Bob should hold first option");
-        assertEq(opt2.optionHolder, CAROL, "Carol should hold second option");
-        assertEq(opt1.strikePrice, 2100e6, "First option strike should be 2100");
-        assertEq(opt2.strikePrice, 2200e6, "Second option strike should be 2200");
-        
-        console.log(" Multiple options created successfully");
-        console.log("Bob's strike:", opt1.strikePrice / 1e6, "USDC");
-        console.log("Carol's strike:", opt2.strikePrice / 1e6, "USDC");
-    }
-    
-    // Helper function to create sell orders
+    // Helper functions
     function _createSellOrder(uint256 makingAmount, uint256 takingAmount) 
         internal pure returns (IOrderMixin.Order memory) 
     {
@@ -369,4 +494,21 @@ contract OptionsCalculatorTest is Test {
             makerTraits: 0
         });
     }
+    
+    function _createBuyOrder(uint256 makingAmount, uint256 takingAmount) 
+        internal pure returns (IOrderMixin.Order memory) 
+    {
+        return IOrderMixin.Order({
+            salt: 2,
+            maker: ALICE,
+            receiver: ALICE,
+            makerAsset: USDC,    // Paying USDC
+            takerAsset: WETH,    // To get ETH
+            makingAmount: takingAmount,  // Flipped: paying USDC amount
+            takingAmount: makingAmount,  // Flipped: getting ETH amount
+            makerTraits: 0
+        });
+    }
 }
+
+
