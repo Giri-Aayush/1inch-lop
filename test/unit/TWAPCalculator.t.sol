@@ -87,52 +87,46 @@ contract TWAPCalculatorTest is Test {
         assertTrue(makingAmount2 > 0, "Second amount should be positive");
     }
     
-    function testTWAPExecutionExpired() public {
-        IOrderMixin.Order memory order = IOrderMixin.Order({
-            salt: 1,
-            maker: address(0x123),
-            receiver: address(0x456),
-            makerAsset: address(0x789),
-            takerAsset: address(0xABC),
-            makingAmount: 1000e18,
-            takingAmount: 2000e18,
-            makerTraits: 0
-        });
-        
-        // Move forward in time first to create a proper past/future scenario
-        vm.warp(10000); // Set current time to 10000
-        
-        console.log("New current timestamp:", block.timestamp);
-        
-        // Now create expired TWAP data (started and ended in the past)
-        uint256 startTime = 5000;  // Started at 5000
-        uint256 duration = 1000;   // Duration of 1000 seconds
-        uint256 endTime = startTime + duration; // Ends at 6000
-        
-        console.log("Start time:", startTime);
-        console.log("End time:", endTime);
-        console.log("Current time:", block.timestamp);
-        console.log("Should be expired:", block.timestamp > endTime);
-        
-        TWAPCalculator.TWAPData memory twapData = TWAPCalculator.TWAPData({
-            startTime: startTime,
-            duration: duration,
-            intervals: 12,
-            executedIntervals: 0,
-            randomizeExecution: false,
-            minExecutionGap: 60,
-            maxSlippageBPS: 100
-        });
-        
-        bytes memory extraData = abi.encode(twapData);
-        
-        // This MUST revert with TWAPExecutionExpired
-        vm.expectRevert(TWAPCalculator.TWAPExecutionExpired.selector);
-        calculator.getMakingAmount(
-            order, "", bytes32(0), address(0), 200e18, 1000e18, extraData
-        );
-    }
-    
+function testTWAPExecutionExpired() public {
+    IOrderMixin.Order memory order = IOrderMixin.Order({
+        salt: 1,
+        maker: address(0x123),
+        receiver: address(0x456),
+        makerAsset: address(0x789),
+        takerAsset: address(0xABC),
+        makingAmount: 1000e18,
+        takingAmount: 2000e18,
+        makerTraits: 0
+    });
+
+    // Warp time beyond TWAP end
+    vm.warp(10000); // Simulate block.timestamp = 10000
+
+    TWAPCalculator.TWAPData memory twapData = TWAPCalculator.TWAPData({
+        startTime: 5000,
+        duration: 1000, // Ends at 6000
+        intervals: 10,
+        executedIntervals: 5,
+        randomizeExecution: false,
+        minExecutionGap: 60,
+        maxSlippageBPS: 100
+    });
+
+    bytes memory extraData = abi.encode(twapData);
+
+    // Expect the function to revert with TWAPExecutionExpired
+    vm.expectRevert(TWAPCalculator.TWAPExecutionExpired.selector);
+    calculator.getMakingAmount(
+        order,
+        "",
+        bytes32(0),
+        address(0),
+        100e18,
+        0,
+        extraData
+    );
+}
+
     function testGetTWAPStatus() public view {
         TWAPCalculator.TWAPData memory twapData = TWAPCalculator.TWAPData({
             startTime: block.timestamp,
