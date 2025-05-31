@@ -1064,7 +1064,6 @@ contract TWAPExecutionTests is BaseMainnetTest {
                 "Next execution time should be valid"
             );
         }
-
         bool shouldPause = twapExecutor.shouldPauseExecution(extraData);
         assertFalse(shouldPause, "Should not pause with normal volatility");
     }
