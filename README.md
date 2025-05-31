@@ -1,70 +1,32 @@
-## Foundry
+# 1inch Limit Order Protocol: Advanced Extensions
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+This repository extends the [1inch Limit Order Protocol](https://github.com/1inch) with advanced order execution strategies.
 
-Foundry consists of:
+## ✨ Features
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+- ✅ **TWAP Order Execution** (Time-Weighted Average Price)
+- 📈 Volatility-based logic (coming soon)
+- ⚙️ Modular calculator contracts for flexible order computation
 
-## Documentation
+---
 
-https://book.getfoundry.sh/
+## 🧠 TWAPCalculator
 
-## Usage
+TWAP (Time-Weighted Average Price) orders break a large order into smaller slices over time, to minimize slippage and market impact.
 
-### Build
+### 🔍 Logic Tested
 
-```shell
-$ forge build
-```
+| Test Name                    | Purpose                                                   |
+|-----------------------------|------------------------------------------------------------|
+| `testBasicTWAPCalculation`  | Validates proportional making amount in a basic scenario.  |
+| `testTWAPWithRandomization` | Checks random execution logic using seeds.                 |
+| `testTWAPExecutionExpired`  | Reverts if TWAP duration is over.                         |
+| `testGetTWAPStatus`         | Confirms TWAP status: active flag, remaining intervals.    |
+| `testInvalidTWAPData`       | Rejects invalid config like zero intervals.                |
 
-### Test
+---
 
-```shell
-$ forge test
-```
+## 📦 Installation
 
-### Format
-
-```shell
-$ forge fmt
-```
-
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
-
-
-
-
+```bash
+forge install
