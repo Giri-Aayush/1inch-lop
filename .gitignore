@@ -1,14 +1,47 @@
-# Compiler files
-cache/
+# Rust/Cargo
+target/
+cli/target/
+Cargo.lock
+cli/Cargo.lock
+
+# Generated configs (these are user-specific)
+*.json
+!package*.json
+volatility-config.json
+twap-config.json
+combined-strategy.json
+vector-plus.json
+
+# Foundry/Solidity
 out/
+cache/
+broadcast/
+artifacts/
 
-# Ignores development broadcast logs
-!/broadcast
-/broadcast/*/31337/
-/broadcast/**/dry-run/
+# Node modules (if any)
+node_modules/
 
-# Docs
-docs/
+# IDE/Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 
-# Dotenv file
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Environment
 .env
+.env.local
+.env.production
+
+# Test results
+results/
+mainnet_test_results.txt
+comprehensive_test_results.txt
