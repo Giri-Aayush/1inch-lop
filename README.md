@@ -8,23 +8,54 @@
 
 ## What We Built
 
-### 1. Options on Execution Rights (Industry First)
+### 1. Options on Execution Rights 
 Trade options on the **right to execute** limit orders, not the underlying assets.
 
-![alt text](./docs/assets/1.png)
+![Options Flow](./docs/assets/1.png)
 
+**How it works:**
+1. **Order Creation**: Alice creates a limit order to sell 10 ETH at $2000 each
+2. **Option Purchase**: Bob pays $50 premium for a call option with $2100 strike price
+3. **Market Movement**: ETH price moves in the market
+4. **Exercise Decision**: If ETH > $2100, Bob can exercise during the 30-minute window before expiration
+5. **Profit/Loss**: Bob profits from the price difference minus premium, or loses the premium if not exercised
+
+**Key Innovation**: Unlike traditional options on assets, these are options on the **execution right** of existing limit orders.
 ### 2. Volatility-Aware Position Sizing
 Dynamic execution sizing based on real-time market volatility.
 
 ![alt text](./docs/assets/2.png)
+**How it works:**
+1. **Volatility Input**: Real-time market volatility is fed into the system (measured in basis points)
+2. **Risk Assessment**: Algorithm calculates risk score (0-1000) based on current vs baseline volatility
+3. **Size Adjustment**:
+  - **Low volatility (<2%)**: Increase execution size by up to 50% (safer to execute larger amounts)
+  - **Normal volatility (2-5%)**: Standard execution size
+  - **High volatility (5-12%)**: Reduce execution size by up to 50% (risk management)
+  - **Extreme volatility (>12%)**: Emergency pause - no execution allowed
+4. **Bounds Enforcement**: Final amount respects min/max execution limits
+5. **Conservative Mode**: Optional additional 10% reduction for extra safety
+
+**Example**: 2.0 ETH order with 8% volatility → 1.0 ETH execution (50% reduction due to high volatility)
 
 ### 3. MEV-Resistant TWAP Execution
 Time-weighted execution with anti-MEV randomization.
 
-- **±15% randomization** prevents predictable execution patterns
-- **Adaptive intervals** - shorter during high volatility
-- **Progress tracking** with emergency controls
+**How it works:**
+1. **TWAP Setup**: User defines total duration (e.g., 2 hours) and intervals (e.g., 12 intervals = 10 min each)
+2. **Base Calculation**: Order divided equally across intervals (10 ETH ÷ 12 intervals = 0.83 ETH per interval)
+3. **Randomization Layer**: Each execution gets ±15% random adjustment to prevent MEV bots from predicting timing
+4. **Volatility Integration**: High volatility → shorter intervals for faster execution, Low volatility → longer intervals
+5. **Execution**: System executes randomly-sized portions at adaptive intervals
+6. **Progress Tracking**: Monitor completion percentage and remaining amounts
 
+**MEV Protection Features:**
+- **±15% randomization** prevents predictable execution patterns
+- **Adaptive intervals** - shorter during high volatility for faster execution
+- **Deterministic randomness** using order hash + timestamp (unpredictable but verifiable)
+- **Progress tracking** with emergency controls for extreme market conditions
+
+**Example**: 12 ETH order over 2 hours → 12 intervals with 0.85-1.15 ETH per interval, executed every 8-12 minutes depending on volatility
 ## System Architecture
 
 ![alt text](./docs/assets/3.png)
