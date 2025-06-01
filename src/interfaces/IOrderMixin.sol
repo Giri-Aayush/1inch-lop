@@ -7,14 +7,14 @@ pragma solidity ^0.8.0;
  */
 interface IOrderMixin {
     struct Order {
-        uint256 salt;           // Order salt and extension hash
-        address maker;          // Order maker address
-        address receiver;       // Order receiver address
-        address makerAsset;     // Maker asset address
-        address takerAsset;     // Taker asset address
-        uint256 makingAmount;   // Making amount
-        uint256 takingAmount;   // Taking amount
-        uint256 makerTraits;    // Maker traits
+        uint256 salt; // Order salt and extension hash
+        address maker; // Order maker address
+        address receiver; // Order receiver address
+        address makerAsset; // Maker asset address
+        address takerAsset; // Taker asset address
+        uint256 makingAmount; // Making amount
+        uint256 takingAmount; // Taking amount
+        uint256 makerTraits; // Maker traits
     }
 }
 
@@ -34,7 +34,10 @@ interface IAmountCalculator {
         uint256 takingAmount,
         uint256 remainingMakingAmount,
         bytes calldata extraData
-    ) external view returns (uint256 makingAmount);
+    )
+        external
+        view
+        returns (uint256 makingAmount);
 
     /**
      * @notice Calculate taking amount based on making amount
@@ -47,5 +50,8 @@ interface IAmountCalculator {
         uint256 makingAmount,
         uint256 remainingMakingAmount,
         bytes calldata extraData
-    ) external view returns (uint256 takingAmount);
+    )
+        external
+        view
+        returns (uint256 takingAmount);
 }

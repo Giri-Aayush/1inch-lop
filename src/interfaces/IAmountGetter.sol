@@ -26,7 +26,10 @@ interface IAmountGetter {
         uint256 takingAmount,
         uint256 remainingMakingAmount,
         bytes calldata extraData
-    ) external view returns (uint256);
+    )
+        external
+        view
+        returns (uint256);
 
     /**
      * @notice View method that gets called to determine the actual taking amount
@@ -46,5 +49,8 @@ interface IAmountGetter {
         uint256 makingAmount,
         uint256 remainingMakingAmount,
         bytes calldata extraData
-    ) external view returns (uint256);
+    )
+        external
+        view
+        returns (uint256);
 }

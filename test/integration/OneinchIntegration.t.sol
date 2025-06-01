@@ -12,7 +12,7 @@ import "../../src/calculators/SimpleVolatilityCalculator.sol";
 contract OneinchIntegrationTest is Test {
     SimpleTWAPCalculator public twapCalculator;
     SimpleVolatilityCalculator public volatilityCalculator;
-    
+
     // Test addresses
     address constant MAKER = address(0x1234);
     address constant TAKER = address(0x5678);
@@ -22,7 +22,7 @@ contract OneinchIntegrationTest is Test {
     function setUp() public {
         twapCalculator = new SimpleTWAPCalculator();
         volatilityCalculator = new SimpleVolatilityCalculator();
-        vm.warp(1685000000); // Set realistic timestamp
+        vm.warp(1_685_000_000); // Set realistic timestamp
     }
 
     /**
@@ -30,22 +30,22 @@ contract OneinchIntegrationTest is Test {
      */
     function testOneinchTWAPIntegration() public {
         console.log("=== Testing TWAP Calculator with 1inch Integration ===");
-        
+
         // Create order
-        IOrderMixin.Order memory order = _createTestOrder(1000000e6, 400e18);
-        
+        IOrderMixin.Order memory order = _createTestOrder(1_000_000e6, 400e18);
+
         // Create TWAP data
         SimpleTWAPCalculator.TWAPData memory twapData = SimpleTWAPCalculator.TWAPData({
             startTime: block.timestamp,
-            duration: 21600,    // 6 hours
-            intervals: 36,      // 10 min intervals
+            duration: 21_600, // 6 hours
+            intervals: 36, // 10 min intervals
             randomizeExecution: true
         });
 
         // Test the integration
         bytes memory extraData = abi.encode(twapData);
         bytes32 orderHash = keccak256("test");
-        
+
         uint256 allowedAmount = twapCalculator.getMakingAmount(
             order,
             "",
@@ -58,14 +58,14 @@ contract OneinchIntegrationTest is Test {
 
         // Validate results
         uint256 expectedPerInterval = order.makingAmount / twapData.intervals;
-        
+
         console.log("Expected per interval:", expectedPerInterval);
         console.log("Allowed amount:", allowedAmount);
-        
+
         assertTrue(allowedAmount > 0, "Should allow execution");
         assertTrue(allowedAmount <= expectedPerInterval * 115 / 100, "Should not exceed 115% of interval");
         assertTrue(allowedAmount >= expectedPerInterval * 85 / 100, "Should be at least 85% of interval");
-        
+
         console.log(" TWAP Integration Test Passed");
     }
 
@@ -74,22 +74,22 @@ contract OneinchIntegrationTest is Test {
      */
     function testOneinchVolatilityIntegration() public {
         console.log("\n=== Testing Volatility Calculator with 1inch Integration ===");
-        
+
         // Create order
-        IOrderMixin.Order memory order = _createTestOrder(500000e6, 200e18);
-        
+        IOrderMixin.Order memory order = _createTestOrder(500_000e6, 200e18);
+
         // High volatility scenario
         SimpleVolatilityCalculator.VolatilityData memory volData = SimpleVolatilityCalculator.VolatilityData({
-            baselineVolatility: 200,        // 2%
-            currentVolatility: 450,         // 4.5% (high)
-            maxExecutionSize: 50000e6,
+            baselineVolatility: 200, // 2%
+            currentVolatility: 450, // 4.5% (high)
+            maxExecutionSize: 50_000e6,
             minExecutionSize: 5000e6,
             lastUpdateTime: block.timestamp,
             conservativeMode: true
         });
 
         bytes memory extraData = abi.encode(volData);
-        
+
         uint256 allowedAmount = volatilityCalculator.getMakingAmount(
             order,
             "",
@@ -101,13 +101,13 @@ contract OneinchIntegrationTest is Test {
         );
 
         uint256 baseAmount = (20e18 * order.makingAmount) / order.takingAmount;
-        
+
         console.log("Base amount:", baseAmount);
         console.log("Volatility-adjusted amount:", allowedAmount);
-        
+
         assertTrue(allowedAmount < baseAmount, "High volatility should reduce size");
         assertTrue(allowedAmount >= volData.minExecutionSize, "Should respect min size");
-        
+
         console.log(" Volatility Integration Test Passed");
     }
 
@@ -116,13 +116,13 @@ contract OneinchIntegrationTest is Test {
      */
     function testSequentialTWAPExecutions() public {
         console.log("\n=== Testing Sequential TWAP Executions ===");
-        
-        IOrderMixin.Order memory order = _createTestOrder(100000e6, 40e18);
-        
+
+        IOrderMixin.Order memory order = _createTestOrder(100_000e6, 40e18);
+
         SimpleTWAPCalculator.TWAPData memory twapData = SimpleTWAPCalculator.TWAPData({
             startTime: block.timestamp,
-            duration: 3600,     // 1 hour
-            intervals: 12,      // 5 min intervals
+            duration: 3600, // 1 hour
+            intervals: 12, // 5 min intervals
             randomizeExecution: false
         });
 
@@ -135,22 +135,16 @@ contract OneinchIntegrationTest is Test {
         // Simulate 3 executions
         for (uint256 i = 0; i < 3; i++) {
             vm.warp(block.timestamp + 300); // Move 5 minutes forward
-            
+
             uint256 allowedAmount = twapCalculator.getMakingAmount(
-                order,
-                "",
-                keccak256(abi.encode("test", i)),
-                TAKER,
-                0,
-                remainingAmount,
-                extraData
+                order, "", keccak256(abi.encode("test", i)), TAKER, 0, remainingAmount, extraData
             );
 
             console.log("Execution", i + 1, "allowed:", allowedAmount);
-            
+
             assertTrue(allowedAmount > 0, "Should allow execution");
             assertTrue(allowedAmount <= remainingAmount, "Should not exceed remaining");
-            
+
             remainingAmount -= allowedAmount;
         }
 
@@ -162,12 +156,12 @@ contract OneinchIntegrationTest is Test {
      */
     function testExpiredOrderHandling() public {
         console.log("\n=== Testing Expired Order Handling ===");
-        
-        IOrderMixin.Order memory order = _createTestOrder(50000e6, 20e18);
-        
+
+        IOrderMixin.Order memory order = _createTestOrder(50_000e6, 20e18);
+
         SimpleTWAPCalculator.TWAPData memory twapData = SimpleTWAPCalculator.TWAPData({
             startTime: block.timestamp,
-            duration: 1800,     // 30 minutes
+            duration: 1800, // 30 minutes
             intervals: 6,
             randomizeExecution: false
         });
@@ -180,27 +174,22 @@ contract OneinchIntegrationTest is Test {
         console.log("Testing expired order revert...");
 
         vm.expectRevert(SimpleTWAPCalculator.TWAPExpired.selector);
-        twapCalculator.getMakingAmount(
-            order,
-            "",
-            keccak256("expired"),
-            TAKER,
-            0,
-            order.makingAmount,
-            extraData
-        );
+        twapCalculator.getMakingAmount(order, "", keccak256("expired"), TAKER, 0, order.makingAmount, extraData);
 
         console.log(" Expired Order Test Passed");
     }
 
     // Helper function to create test orders
-    function _createTestOrder(uint256 makingAmount, uint256 takingAmount) 
-        internal 
-        pure 
-        returns (IOrderMixin.Order memory) 
+    function _createTestOrder(
+        uint256 makingAmount,
+        uint256 takingAmount
+    )
+        internal
+        pure
+        returns (IOrderMixin.Order memory)
     {
         return IOrderMixin.Order({
-            salt: 1234567890,
+            salt: 1_234_567_890,
             maker: MAKER,
             receiver: MAKER,
             makerAsset: USDC,

@@ -9,14 +9,13 @@ import "../interfaces/IAmountGetter.sol";
  * @dev Simple implementation following 1inch patterns
  */
 contract SimpleVolatilityCalculator is IAmountGetter {
-    
     struct VolatilityData {
-        uint256 baselineVolatility;    // Normal volatility (BPS)
-        uint256 currentVolatility;     // Current volatility (BPS)
-        uint256 maxExecutionSize;      // Max execution size
-        uint256 minExecutionSize;      // Min execution size
-        uint256 lastUpdateTime;        // Last update timestamp
-        bool conservativeMode;         // Conservative mode flag
+        uint256 baselineVolatility; // Normal volatility (BPS)
+        uint256 currentVolatility; // Current volatility (BPS)
+        uint256 maxExecutionSize; // Max execution size
+        uint256 minExecutionSize; // Min execution size
+        uint256 lastUpdateTime; // Last update timestamp
+        bool conservativeMode; // Conservative mode flag
     }
 
     error StaleVolatilityData();
@@ -33,25 +32,29 @@ contract SimpleVolatilityCalculator is IAmountGetter {
         uint256 takingAmount,
         uint256 remainingMakingAmount,
         bytes calldata extraData
-    ) external view returns (uint256) {
+    )
+        external
+        view
+        returns (uint256)
+    {
         VolatilityData memory vol = abi.decode(extraData, (VolatilityData));
-        
+
         // Validate data
         if (block.timestamp > vol.lastUpdateTime + STALE_THRESHOLD) revert StaleVolatilityData();
         if (vol.currentVolatility > vol.baselineVolatility * 5) revert VolatilityTooHigh();
         if (vol.maxExecutionSize < vol.minExecutionSize) revert InvalidVolatilityData();
-        
+
         // Calculate base amount
         uint256 baseAmount = (takingAmount * order.makingAmount) / order.takingAmount;
-        
+
         // Apply volatility adjustment
         uint256 adjustedAmount = _applyVolatilityAdjustment(baseAmount, vol);
-        
+
         // Enforce bounds
         if (adjustedAmount > vol.maxExecutionSize) adjustedAmount = vol.maxExecutionSize;
         if (adjustedAmount < vol.minExecutionSize) adjustedAmount = vol.minExecutionSize;
         if (adjustedAmount > remainingMakingAmount) adjustedAmount = remainingMakingAmount;
-        
+
         return adjustedAmount;
     }
 
@@ -63,29 +66,30 @@ contract SimpleVolatilityCalculator is IAmountGetter {
         uint256 makingAmount,
         uint256,
         bytes calldata extraData
-    ) external view returns (uint256) {
+    )
+        external
+        view
+        returns (uint256)
+    {
         VolatilityData memory vol = abi.decode(extraData, (VolatilityData));
-        
+
         // Basic validation
         if (block.timestamp > vol.lastUpdateTime + STALE_THRESHOLD) revert StaleVolatilityData();
-        
+
         // Calculate proportional taking amount
         uint256 baseTakingAmount = (makingAmount * order.takingAmount) / order.makingAmount;
-        
+
         // Apply volatility premium for high volatility
         if (vol.currentVolatility > vol.baselineVolatility * 2) {
             // Require more taking tokens during high volatility
             uint256 premium = (baseTakingAmount * 5) / 100; // 5% premium
             baseTakingAmount += premium;
         }
-        
+
         return baseTakingAmount;
     }
 
-    function _applyVolatilityAdjustment(
-        uint256 amount,
-        VolatilityData memory vol
-    ) internal pure returns (uint256) {
+    function _applyVolatilityAdjustment(uint256 amount, VolatilityData memory vol) internal pure returns (uint256) {
         if (vol.currentVolatility <= vol.baselineVolatility) {
             // Low volatility: increase execution size
             return (amount * 120) / 100; // 20% increase

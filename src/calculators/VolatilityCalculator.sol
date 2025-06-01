@@ -11,13 +11,13 @@ import "../interfaces/IOrderMixin.sol";
  */
 contract VolatilityCalculator is IAmountCalculator {
     struct VolatilityData {
-        uint256 baselineVolatility;     // Expected normal volatility (basis points)
-        uint256 currentVolatility;      // Current market volatility
-        uint256 maxExecutionSize;       // Maximum single execution size
-        uint256 minExecutionSize;       // Minimum single execution size
-        uint256 volatilityThreshold;    // Volatility threshold for adjustments
-        uint256 lastUpdateTime;         // Last volatility update timestamp
-        bool conservativeMode;          // Whether to use conservative sizing
+        uint256 baselineVolatility; // Expected normal volatility (basis points)
+        uint256 currentVolatility; // Current market volatility
+        uint256 maxExecutionSize; // Maximum single execution size
+        uint256 minExecutionSize; // Minimum single execution size
+        uint256 volatilityThreshold; // Volatility threshold for adjustments
+        uint256 lastUpdateTime; // Last volatility update timestamp
+        bool conservativeMode; // Whether to use conservative sizing
     }
 
     /// @notice Errors
@@ -35,14 +35,18 @@ contract VolatilityCalculator is IAmountCalculator {
         uint256 takingAmount,
         uint256,
         bytes calldata extraData
-    ) external view returns (uint256) {
+    )
+        external
+        view
+        returns (uint256)
+    {
         VolatilityData memory volData = abi.decode(extraData, (VolatilityData));
-        
+
         _validateVolatilityData(volData);
-        
+
         uint256 baseAmount = (takingAmount * order.makingAmount) / order.takingAmount;
         uint256 adjustedAmount = _applyVolatilityAdjustment(baseAmount, volData);
-        
+
         return adjustedAmount;
     }
 
@@ -57,14 +61,18 @@ contract VolatilityCalculator is IAmountCalculator {
         uint256 makingAmount,
         uint256,
         bytes calldata extraData
-    ) external view returns (uint256) {
+    )
+        external
+        view
+        returns (uint256)
+    {
         VolatilityData memory volData = abi.decode(extraData, (VolatilityData));
-        
+
         _validateVolatilityData(volData);
-        
+
         uint256 baseAmount = (makingAmount * order.takingAmount) / order.makingAmount;
         uint256 adjustedAmount = _applyVolatilityAdjustment(baseAmount, volData);
-        
+
         return adjustedAmount;
     }
 
@@ -75,11 +83,11 @@ contract VolatilityCalculator is IAmountCalculator {
         if (volData.maxExecutionSize < volData.minExecutionSize) {
             revert InvalidVolatilityData();
         }
-        
+
         if (volData.currentVolatility > volData.volatilityThreshold * 3) {
             revert VolatilityTooHigh();
         }
-        
+
         // Check if data is stale (older than 1 hour)
         if (block.timestamp > volData.lastUpdateTime + 3600) {
             revert InvalidVolatilityData();
@@ -92,25 +100,30 @@ contract VolatilityCalculator is IAmountCalculator {
     function _applyVolatilityAdjustment(
         uint256 amount,
         VolatilityData memory volData
-    ) internal pure returns (uint256) {
+    )
+        internal
+        pure
+        returns (uint256)
+    {
         if (volData.currentVolatility <= volData.baselineVolatility) {
             // Low volatility: can execute larger amounts
             uint256 increasedAmount = _min(amount * 120 / 100, volData.maxExecutionSize);
             return increasedAmount;
         } else if (volData.currentVolatility > volData.volatilityThreshold) {
             // High volatility: execute smaller amounts
-            uint256 reduction = (volData.currentVolatility - volData.baselineVolatility) * 50 / volData.baselineVolatility;
+            uint256 reduction =
+                (volData.currentVolatility - volData.baselineVolatility) * 50 / volData.baselineVolatility;
             reduction = _min(reduction, 50); // Max 50% reduction
-            
+
             uint256 adjustedAmount = amount * (100 - reduction) / 100;
             return _max(adjustedAmount, volData.minExecutionSize);
         }
-        
+
         // Normal volatility: apply conservative mode if enabled
         if (volData.conservativeMode) {
             return amount * 90 / 100; // 10% reduction
         }
-        
+
         return amount;
     }
 
@@ -125,11 +138,12 @@ contract VolatilityCalculator is IAmountCalculator {
         if (volData.currentVolatility <= volData.baselineVolatility) {
             return 120; // 20% increase
         } else if (volData.currentVolatility > volData.volatilityThreshold) {
-            uint256 reduction = (volData.currentVolatility - volData.baselineVolatility) * 50 / volData.baselineVolatility;
+            uint256 reduction =
+                (volData.currentVolatility - volData.baselineVolatility) * 50 / volData.baselineVolatility;
             reduction = _min(reduction, 50);
             return 100 - reduction;
         }
-        
+
         return volData.conservativeMode ? 90 : 100;
     }
 

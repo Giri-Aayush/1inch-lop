@@ -9,7 +9,6 @@ import "../interfaces/IAmountGetter.sol";
  * @dev Simple implementation following 1inch patterns
  */
 contract SimpleTWAPCalculator is IAmountGetter {
-    
     struct TWAPData {
         uint256 startTime;
         uint256 duration;
@@ -29,17 +28,21 @@ contract SimpleTWAPCalculator is IAmountGetter {
         uint256,
         uint256 remainingMakingAmount,
         bytes calldata extraData
-    ) external view returns (uint256) {
+    )
+        external
+        view
+        returns (uint256)
+    {
         TWAPData memory twap = abi.decode(extraData, (TWAPData));
-        
+
         // Validate timing
         if (block.timestamp < twap.startTime) revert TWAPNotStarted();
         if (block.timestamp >= twap.startTime + twap.duration) revert TWAPExpired();
         if (twap.intervals == 0) revert InvalidTWAPData();
-        
+
         // Calculate base amount per interval
         uint256 baseAmount = order.makingAmount / twap.intervals;
-        
+
         // Apply randomization if enabled
         if (twap.randomizeExecution) {
             uint256 seed = uint256(keccak256(abi.encode(orderHash, block.timestamp))) % 100;
@@ -57,7 +60,7 @@ contract SimpleTWAPCalculator is IAmountGetter {
                 }
             }
         }
-        
+
         // Don't exceed remaining amount
         return baseAmount > remainingMakingAmount ? remainingMakingAmount : baseAmount;
     }
@@ -70,7 +73,11 @@ contract SimpleTWAPCalculator is IAmountGetter {
         uint256 makingAmount,
         uint256,
         bytes calldata extraData
-    ) external view returns (uint256) {
+    )
+        external
+        view
+        returns (uint256)
+    {
         // Simple proportional calculation
         if (order.makingAmount == 0) return 0;
         return (makingAmount * order.takingAmount) / order.makingAmount;

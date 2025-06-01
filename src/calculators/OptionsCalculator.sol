@@ -65,7 +65,7 @@ contract OptionsCalculator {
 
     // ============ CONSTANTS ============
 
-    uint256 private constant BASIS_POINTS = 10000;
+    uint256 private constant BASIS_POINTS = 10_000;
     uint256 private constant SECONDS_PER_YEAR = 365 * 24 * 3600;
     uint256 private constant MIN_TIME_TO_EXPIRATION = 300; // 5 minutes
     uint256 private constant MAX_TIME_TO_EXPIRATION = 30 * 24 * 3600; // 30 days
@@ -92,21 +92,11 @@ contract OptionsCalculator {
         bool isCall
     );
 
-    event OptionExercised(
-        bytes32 indexed optionId,
-        address indexed exerciser,
-        uint256 executionPrice,
-        uint256 profit
-    );
+    event OptionExercised(bytes32 indexed optionId, address indexed exerciser, uint256 executionPrice, uint256 profit);
 
     event OptionExpired(bytes32 indexed optionId, uint256 timeValue);
 
-    event PremiumPaid(
-        bytes32 indexed optionId,
-        address from,
-        address to,
-        uint256 amount
-    );
+    event PremiumPaid(bytes32 indexed optionId, address from, address to, uint256 amount);
 
     // ============ ERRORS ============
 
@@ -141,7 +131,11 @@ contract OptionsCalculator {
         uint256 takingAmount,
         uint256 remainingMakingAmount,
         bytes calldata extraData
-    ) external view returns (uint256) {
+    )
+        external
+        view
+        returns (uint256)
+    {
         OptionData memory option = abi.decode(extraData, (OptionData));
 
         // Validate option can be exercised
@@ -150,13 +144,7 @@ contract OptionsCalculator {
         }
 
         // Calculate profitable execution amount
-        return
-            calculateExerciseAmount(
-                order,
-                option,
-                takingAmount,
-                remainingMakingAmount
-            );
+        return calculateExerciseAmount(order, option, takingAmount, remainingMakingAmount);
     }
 
     /**
@@ -170,7 +158,11 @@ contract OptionsCalculator {
         uint256 makingAmount,
         uint256 remainingMakingAmount,
         bytes calldata extraData
-    ) external view returns (uint256) {
+    )
+        external
+        view
+        returns (uint256)
+    {
         OptionData memory option = abi.decode(extraData, (OptionData));
 
         if (!canExercise(option, taker)) {
@@ -178,8 +170,7 @@ contract OptionsCalculator {
         }
 
         // Convert making amount to taking amount
-        uint256 takingAmount = (makingAmount * order.takingAmount) /
-            order.makingAmount;
+        uint256 takingAmount = (makingAmount * order.takingAmount) / order.makingAmount;
         return takingAmount;
     }
 
@@ -194,7 +185,11 @@ contract OptionsCalculator {
         uint256 strikePrice,
         uint256 expiration,
         uint256 premium
-    ) external payable returns (bytes32 optionId) {
+    )
+        external
+        payable
+        returns (bytes32 optionId)
+    {
         _validateOptionParameters(strikePrice, expiration, premium);
 
         optionId = _generateOptionId(orderHash, msg.sender, block.timestamp);
@@ -217,15 +212,7 @@ contract OptionsCalculator {
 
         _processPremiumPayment(optionId, option.optionSeller, premium);
 
-        emit OptionCreated(
-            optionId,
-            option.optionHolder,
-            option.optionSeller,
-            strikePrice,
-            expiration,
-            premium,
-            true
-        );
+        emit OptionCreated(optionId, option.optionHolder, option.optionSeller, strikePrice, expiration, premium, true);
 
         return optionId;
     }
@@ -239,7 +226,11 @@ contract OptionsCalculator {
         uint256 strikePrice,
         uint256 expiration,
         uint256 premium
-    ) external payable returns (bytes32 optionId) {
+    )
+        external
+        payable
+        returns (bytes32 optionId)
+    {
         _validateOptionParameters(strikePrice, expiration, premium);
 
         optionId = _generateOptionId(orderHash, msg.sender, block.timestamp);
@@ -262,15 +253,7 @@ contract OptionsCalculator {
 
         _processPremiumPayment(optionId, option.optionSeller, premium);
 
-        emit OptionCreated(
-            optionId,
-            option.optionHolder,
-            option.optionSeller,
-            strikePrice,
-            expiration,
-            premium,
-            false
-        );
+        emit OptionCreated(optionId, option.optionHolder, option.optionSeller, strikePrice, expiration, premium, false);
 
         return optionId;
     }
@@ -282,7 +265,10 @@ contract OptionsCalculator {
         bytes32 optionId,
         IOrderMixin.Order calldata order,
         uint256 currentPrice
-    ) internal returns (bool success) {
+    )
+        internal
+        returns (bool success)
+    {
         OptionData storage option = options[optionId];
 
         _validateExercise(optionId, option);
@@ -293,8 +279,7 @@ contract OptionsCalculator {
 
         option.isExercised = true;
 
-        uint256 profit = ((currentPrice - option.strikePrice) *
-            order.makingAmount) / order.takingAmount;
+        uint256 profit = ((currentPrice - option.strikePrice) * order.makingAmount) / order.takingAmount;
         profit = profit > option.premiumPaid ? profit - option.premiumPaid : 0;
 
         emit OptionExercised(optionId, msg.sender, currentPrice, profit);
@@ -309,7 +294,10 @@ contract OptionsCalculator {
         bytes32 optionId,
         IOrderMixin.Order calldata order,
         uint256 currentPrice
-    ) internal returns (bool success) {
+    )
+        internal
+        returns (bool success)
+    {
         OptionData storage option = options[optionId];
 
         _validateExercise(optionId, option);
@@ -322,8 +310,7 @@ contract OptionsCalculator {
 
         // For put options on buy orders: profit from forcing purchase at higher price
         uint256 ethAmount = order.takingAmount; // ETH amount in the buy order
-        uint256 profit = ((option.strikePrice - currentPrice) * ethAmount) /
-            1e18;
+        uint256 profit = ((option.strikePrice - currentPrice) * ethAmount) / 1e18;
         profit = profit > option.premiumPaid ? profit - option.premiumPaid : 0;
         emit OptionExercised(optionId, msg.sender, currentPrice, profit);
 
@@ -337,7 +324,10 @@ contract OptionsCalculator {
         bytes32 optionId,
         IOrderMixin.Order calldata order,
         uint256 currentPrice
-    ) external returns (bool success) {
+    )
+        external
+        returns (bool success)
+    {
         OptionData storage option = options[optionId];
 
         if (option.isCall) {
@@ -353,16 +343,16 @@ contract OptionsCalculator {
         IOrderMixin.Order calldata order,
         PricingParams memory params,
         bool isCall
-    ) public pure returns (uint256 premium) {
+    )
+        public
+        pure
+        returns (uint256 premium)
+    {
         if (params.timeToExpiration == 0) {
             return _calculateIntrinsicValue(params.currentPrice, order, isCall);
         }
 
-        uint256 intrinsicValue = _calculateIntrinsicValue(
-            params.currentPrice,
-            order,
-            isCall
-        );
+        uint256 intrinsicValue = _calculateIntrinsicValue(params.currentPrice, order, isCall);
         uint256 timeValue = _calculateTimeValue(params, order);
 
         return intrinsicValue + timeValue;
@@ -371,49 +361,36 @@ contract OptionsCalculator {
     function calculateGreeks(
         bytes32 optionId,
         uint256 currentPrice
-    ) external view returns (OptionGreeks memory greeks) {
+    )
+        external
+        view
+        returns (OptionGreeks memory greeks)
+    {
         OptionData memory option = options[optionId];
 
         if (option.optionHolder == address(0)) {
             revert OptionNotFound();
         }
 
-        uint256 timeToExpiration = option.expiration > block.timestamp
-            ? option.expiration - block.timestamp
-            : 0;
+        uint256 timeToExpiration = option.expiration > block.timestamp ? option.expiration - block.timestamp : 0;
 
         greeks.intrinsicValue = option.isCall
-            ? (
-                currentPrice > option.strikePrice
-                    ? currentPrice - option.strikePrice
-                    : 0
-            )
-            : (
-                option.strikePrice > currentPrice
-                    ? option.strikePrice - currentPrice
-                    : 0
-            );
+            ? (currentPrice > option.strikePrice ? currentPrice - option.strikePrice : 0)
+            : (option.strikePrice > currentPrice ? option.strikePrice - currentPrice : 0);
 
-        greeks.timeValue = option.premiumPaid > greeks.intrinsicValue
-            ? option.premiumPaid - greeks.intrinsicValue
-            : 0;
+        greeks.timeValue = option.premiumPaid > greeks.intrinsicValue ? option.premiumPaid - greeks.intrinsicValue : 0;
 
         if (timeToExpiration > 0) {
             greeks.delta = option.isCall ? int256(7000) : int256(-7000);
             greeks.gamma = int256(1000);
-            greeks.theta = -int256(
-                (greeks.timeValue * 86400) / timeToExpiration
-            );
+            greeks.theta = -int256((greeks.timeValue * 86_400) / timeToExpiration);
             greeks.vega = int256(option.impliedVolatility / 10);
         }
     }
 
     // ============ VALIDATION & HELPERS ============
 
-    function canExercise(
-        OptionData memory option,
-        address exerciser
-    ) public view returns (bool) {
+    function canExercise(OptionData memory option, address exerciser) public view returns (bool) {
         if (option.optionHolder != exerciser) return false;
         if (option.isExercised) return false;
         if (block.timestamp > option.expiration) return false;
@@ -427,25 +404,23 @@ contract OptionsCalculator {
         OptionData memory option,
         uint256 requestedTaking,
         uint256 remainingMaking
-    ) public pure returns (uint256 executeAmount) {
-        uint256 maxExecution = (requestedTaking * order.makingAmount) /
-            order.takingAmount;
+    )
+        public
+        pure
+        returns (uint256 executeAmount)
+    {
+        uint256 maxExecution = (requestedTaking * order.makingAmount) / order.takingAmount;
         return _min(maxExecution, remainingMaking);
     }
 
-    function getOption(
-        bytes32 optionId
-    ) external view returns (OptionData memory option) {
+    function getOption(bytes32 optionId) external view returns (OptionData memory option) {
         option = options[optionId];
         if (option.optionHolder == address(0)) {
             revert OptionNotFound();
         }
     }
 
-    function isProfitableToExercise(
-        bytes32 optionId,
-        uint256 currentPrice
-    ) external view returns (bool isProfitable) {
+    function isProfitableToExercise(bytes32 optionId, uint256 currentPrice) external view returns (bool isProfitable) {
         OptionData memory option = options[optionId];
 
         if (option.isCall) {
@@ -459,7 +434,11 @@ contract OptionsCalculator {
         bytes32 optionId,
         uint256 currentPrice,
         IOrderMixin.Order calldata order
-    ) external view returns (uint256 profit, bool isProfitable) {
+    )
+        external
+        view
+        returns (uint256 profit, bool isProfitable)
+    {
         OptionData memory option = options[optionId];
 
         if (option.optionHolder == address(0)) {
@@ -468,11 +447,8 @@ contract OptionsCalculator {
 
         if (option.isCall) {
             if (currentPrice > option.strikePrice) {
-                uint256 grossProfit = ((currentPrice - option.strikePrice) *
-                    order.makingAmount) / order.takingAmount;
-                profit = grossProfit > option.premiumPaid
-                    ? grossProfit - option.premiumPaid
-                    : 0;
+                uint256 grossProfit = ((currentPrice - option.strikePrice) * order.makingAmount) / order.takingAmount;
+                profit = grossProfit > option.premiumPaid ? grossProfit - option.premiumPaid : 0;
                 isProfitable = grossProfit > option.premiumPaid;
             }
         } else {
@@ -481,11 +457,8 @@ contract OptionsCalculator {
                 // The order maker wants to buy ETH, put holder can force them to buy at a higher price
                 // Profit = (Strike - Current) * ETH amount
                 uint256 ethAmount = order.takingAmount; // ETH amount in the buy order
-                uint256 grossProfit = ((option.strikePrice - currentPrice) *
-                    ethAmount) / 1e18;
-                profit = grossProfit > option.premiumPaid
-                    ? grossProfit - option.premiumPaid
-                    : 0;
+                uint256 grossProfit = ((option.strikePrice - currentPrice) * ethAmount) / 1e18;
+                profit = grossProfit > option.premiumPaid ? grossProfit - option.premiumPaid : 0;
                 isProfitable = grossProfit > option.premiumPaid;
             }
         }
@@ -504,74 +477,55 @@ contract OptionsCalculator {
             revert OptionNotFound();
         }
 
-        uint256 timeToExpiration = option.expiration > block.timestamp
-            ? option.expiration - block.timestamp
-            : 0;
+        uint256 timeToExpiration = option.expiration > block.timestamp ? option.expiration - block.timestamp : 0;
 
         uint256 intrinsicValue;
         if (option.isCall) {
-            intrinsicValue = currentPrice > option.strikePrice
-                ? currentPrice - option.strikePrice
-                : 0;
+            intrinsicValue = currentPrice > option.strikePrice ? currentPrice - option.strikePrice : 0;
         } else {
-            intrinsicValue = option.strikePrice > currentPrice
-                ? option.strikePrice - currentPrice
-                : 0;
+            intrinsicValue = option.strikePrice > currentPrice ? option.strikePrice - currentPrice : 0;
         }
 
         status = OptionStatus({
             isExpired: block.timestamp > option.expiration,
-            isInExerciseWindow: block.timestamp >=
-                option.expiration - EXERCISE_WINDOW &&
-                block.timestamp <= option.expiration,
+            isInExerciseWindow: block.timestamp >= option.expiration - EXERCISE_WINDOW
+                && block.timestamp <= option.expiration,
             isInTheMoney: intrinsicValue > 0,
             timeToExpiration: timeToExpiration,
             intrinsicValue: intrinsicValue,
-            canExercise: canExercise(option, option.optionHolder) &&
-                intrinsicValue > 0
+            canExercise: canExercise(option, option.optionHolder) && intrinsicValue > 0
         });
     }
 
     // ============ INTERNAL FUNCTIONS ============
 
-    function _validateOptionParameters(
-        uint256 strikePrice,
-        uint256 expiration,
-        uint256 premium
-    ) internal view {
+    function _validateOptionParameters(uint256 strikePrice, uint256 expiration, uint256 premium) internal view {
         if (strikePrice == 0) revert InvalidStrikePrice();
-        if (expiration <= block.timestamp + MIN_TIME_TO_EXPIRATION)
+        if (expiration <= block.timestamp + MIN_TIME_TO_EXPIRATION) {
             revert InvalidExpiration();
-        if (expiration > block.timestamp + MAX_TIME_TO_EXPIRATION)
+        }
+        if (expiration > block.timestamp + MAX_TIME_TO_EXPIRATION) {
             revert InvalidExpiration();
+        }
         if (premium == 0) revert InvalidStrikePrice();
     }
 
-    function _validateExercise(
-        bytes32 optionId,
-        OptionData memory option
-    ) internal view {
+    function _validateExercise(bytes32 optionId, OptionData memory option) internal view {
         if (option.optionHolder != msg.sender) revert NotOptionHolder();
         if (option.isExercised) revert OptionAlreadyExercised();
-        if (block.timestamp > option.expiration)
+        if (block.timestamp > option.expiration) {
             revert OptionAlreadyExpired(optionId, option.expiration);
-        if (block.timestamp < option.expiration - EXERCISE_WINDOW)
+        }
+        if (block.timestamp < option.expiration - EXERCISE_WINDOW) {
             revert OutsideExerciseWindow();
+        }
     }
 
-    function _generateOptionId(
-        bytes32 orderHash,
-        address holder,
-        uint256 timestamp
-    ) internal pure returns (bytes32) {
+    function _generateOptionId(bytes32 orderHash, address holder, uint256 timestamp) internal pure returns (bytes32) {
         return keccak256(abi.encodePacked(orderHash, holder, timestamp));
     }
 
-    function _processPremiumPayment(
-        bytes32 optionId,
-        address seller,
-        uint256 premium
-    ) internal {
+    function _processPremiumPayment(bytes32 optionId, address seller, uint256 premium) internal {
         uint256 protocolFee = (premium * protocolFeeRate) / BASIS_POINTS;
         uint256 sellerAmount = premium - protocolFee;
 
@@ -583,7 +537,11 @@ contract OptionsCalculator {
         uint256 currentPrice,
         IOrderMixin.Order calldata order,
         bool isCall
-    ) internal pure returns (uint256) {
+    )
+        internal
+        pure
+        returns (uint256)
+    {
         uint256 orderPrice = (order.takingAmount * 1e18) / order.makingAmount;
 
         if (isCall) {
@@ -596,11 +554,13 @@ contract OptionsCalculator {
     function _calculateTimeValue(
         PricingParams memory params,
         IOrderMixin.Order calldata order
-    ) internal pure returns (uint256) {
-        uint256 timeRatio = (params.timeToExpiration * BASIS_POINTS) /
-            SECONDS_PER_YEAR;
-        uint256 volatilityComponent = (params.volatility * timeRatio) /
-            BASIS_POINTS;
+    )
+        internal
+        pure
+        returns (uint256)
+    {
+        uint256 timeRatio = (params.timeToExpiration * BASIS_POINTS) / SECONDS_PER_YEAR;
+        uint256 volatilityComponent = (params.volatility * timeRatio) / BASIS_POINTS;
 
         return (order.takingAmount * volatilityComponent) / BASIS_POINTS / 100;
     }

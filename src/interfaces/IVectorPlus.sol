@@ -12,33 +12,24 @@ import "../calculators/OptionsCalculator.sol";
  * @dev Provides easy access to all Vector Plus functionality
  */
 interface IVectorPlusInterface {
-    
     // ============ EVENTS ============
-    
+
     event StrategyExecuted(
-        address indexed user,
-        string strategyType,
-        uint256 amount,
-        uint256 adjustedAmount,
-        bytes32 orderHash
+        address indexed user, string strategyType, uint256 amount, uint256 adjustedAmount, bytes32 orderHash
     );
-    
+
     event OptionCreated(
-        bytes32 indexed optionId,
-        address indexed holder,
-        uint256 strikePrice,
-        uint256 expiration,
-        bool isCall
+        bytes32 indexed optionId, address indexed holder, uint256 strikePrice, uint256 expiration, bool isCall
     );
-    
+
     // ============ STRUCTS ============
-    
+
     struct ContractAddresses {
         address volatilityCalculator;
         address twapExecutor;
         address optionsCalculator;
     }
-    
+
     struct StrategyResult {
         uint256 originalAmount;
         uint256 adjustedAmount;
@@ -46,9 +37,9 @@ interface IVectorPlusInterface {
         string strategyType;
         bool canExecute;
     }
-    
+
     // ============ VOLATILITY STRATEGY ============
-    
+
     /**
      * @notice Calculate volatility-adjusted execution amount
      * @param baseAmount Original execution amount
@@ -58,28 +49,33 @@ interface IVectorPlusInterface {
     function calculateVolatilityAmount(
         uint256 baseAmount,
         EnhancedVolatilityCalculator.VolatilityData memory volData
-    ) external view returns (uint256 adjustedAmount);
-    
+    )
+        external
+        view
+        returns (uint256 adjustedAmount);
+
     /**
      * @notice Get volatility risk score
      * @param volData Volatility configuration
      * @return riskScore Risk score (0-1000)
      */
-    function getVolatilityRiskScore(
-        EnhancedVolatilityCalculator.VolatilityData memory volData
-    ) external view returns (uint256 riskScore);
-    
+    function getVolatilityRiskScore(EnhancedVolatilityCalculator.VolatilityData memory volData)
+        external
+        view
+        returns (uint256 riskScore);
+
     /**
      * @notice Check if execution should be paused due to volatility
      * @param volData Volatility configuration
      * @return shouldPause Whether to pause execution
      */
-    function shouldPauseForVolatility(
-        EnhancedVolatilityCalculator.VolatilityData memory volData
-    ) external view returns (bool shouldPause);
-    
+    function shouldPauseForVolatility(EnhancedVolatilityCalculator.VolatilityData memory volData)
+        external
+        view
+        returns (bool shouldPause);
+
     // ============ TWAP STRATEGY ============
-    
+
     /**
      * @notice Calculate TWAP execution amount with volatility integration
      * @param order The limit order
@@ -95,8 +91,11 @@ interface IVectorPlusInterface {
         uint256 requestedAmount,
         uint256 remainingAmount,
         EnhancedTWAPVolatilityExecutor.CombinedStrategyData memory combinedData
-    ) external view returns (uint256 executionAmount);
-    
+    )
+        external
+        view
+        returns (uint256 executionAmount);
+
     /**
      * @notice Get TWAP execution progress
      * @param order The limit order
@@ -108,19 +107,23 @@ interface IVectorPlusInterface {
         IOrderMixin.Order memory order,
         uint256 remainingAmount,
         EnhancedTWAPVolatilityExecutor.CombinedStrategyData memory combinedData
-    ) external view returns (uint256 progressBPS);
-    
+    )
+        external
+        view
+        returns (uint256 progressBPS);
+
     /**
      * @notice Get next TWAP execution time
      * @param combinedData TWAP configuration
      * @return nextExecutionTime Timestamp of next execution
      */
-    function getNextTWAPExecution(
-        EnhancedTWAPVolatilityExecutor.CombinedStrategyData memory combinedData
-    ) external view returns (uint256 nextExecutionTime);
-    
+    function getNextTWAPExecution(EnhancedTWAPVolatilityExecutor.CombinedStrategyData memory combinedData)
+        external
+        view
+        returns (uint256 nextExecutionTime);
+
     // ============ OPTIONS STRATEGY ============
-    
+
     /**
      * @notice Create a call option on order execution rights
      * @param order The underlying limit order
@@ -136,8 +139,11 @@ interface IVectorPlusInterface {
         uint256 strikePrice,
         uint256 expiration,
         uint256 premium
-    ) external payable returns (bytes32 optionId);
-    
+    )
+        external
+        payable
+        returns (bytes32 optionId);
+
     /**
      * @notice Create a put option on order execution rights
      * @param order The underlying limit order
@@ -153,8 +159,11 @@ interface IVectorPlusInterface {
         uint256 strikePrice,
         uint256 expiration,
         uint256 premium
-    ) external payable returns (bytes32 optionId);
-    
+    )
+        external
+        payable
+        returns (bytes32 optionId);
+
     /**
      * @notice Exercise an option
      * @param optionId Option to exercise
@@ -166,8 +175,10 @@ interface IVectorPlusInterface {
         bytes32 optionId,
         IOrderMixin.Order memory order,
         uint256 currentPrice
-    ) external returns (bool success);
-    
+    )
+        external
+        returns (bool success);
+
     /**
      * @notice Calculate option premium
      * @param order The underlying order
@@ -179,8 +190,11 @@ interface IVectorPlusInterface {
         IOrderMixin.Order memory order,
         OptionsCalculator.PricingParams memory params,
         bool isCall
-    ) external pure returns (uint256 premium);
-    
+    )
+        external
+        pure
+        returns (uint256 premium);
+
     /**
      * @notice Get option details with current status
      * @param optionId Option identifier
@@ -191,19 +205,19 @@ interface IVectorPlusInterface {
     function getOptionStatus(
         bytes32 optionId,
         uint256 currentPrice
-    ) external view returns (
-        OptionsCalculator.OptionData memory option,
-        OptionsCalculator.OptionStatus memory status
-    );
-    
+    )
+        external
+        view
+        returns (OptionsCalculator.OptionData memory option, OptionsCalculator.OptionStatus memory status);
+
     // ============ UTILITY FUNCTIONS ============
-    
+
     /**
      * @notice Get all contract addresses
      * @return addresses Struct containing all contract addresses
      */
     function getContractAddresses() external view returns (ContractAddresses memory addresses);
-    
+
     /**
      * @notice Analyze strategy effectiveness for given parameters
      * @param order The limit order
@@ -215,8 +229,11 @@ interface IVectorPlusInterface {
         IOrderMixin.Order memory order,
         uint256 baseAmount,
         EnhancedVolatilityCalculator.VolatilityData memory volData
-    ) external view returns (StrategyResult memory result);
-    
+    )
+        external
+        view
+        returns (StrategyResult memory result);
+
     /**
      * @notice Estimate gas costs for strategy execution
      * @param strategyType Type of strategy ("volatility", "twap", "options")
